@@ -1,7 +1,7 @@
 {
-  "name": "electron-svelte",
-  "productName": "electron-svelte",
-  "description": "Electron Svelte",
+  "name": "nebbys-yt-downloader",
+  "productName": "Nebby's Youtube Downloader",
+  "description": "A GUI wrapper around yt-dlp CLI that allows for bulk downloads of videos/music",
   "private": true,
   "version": "0.0.1",
   "type": "module",
