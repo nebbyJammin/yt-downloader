@@ -1,12 +1,8 @@
 <script lang='ts'>
   import { resolve } from "$app/paths";
   import { electron } from "$lib/electron";
-  import { browser } from "$app/environment";
 
-  // Client side code
-  if (browser) {
-    console.log(electron?.ytdlp.getReady());
-  }
+  console.log(electron?.ytdlp.getReady());
 
 </script>
 
