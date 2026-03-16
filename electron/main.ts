@@ -1,10 +1,27 @@
-import { app, BrowserWindow } from "electron";
+import { app, BrowserWindow, ipcMain, net, protocol } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 import registerYTDLPHandlers from "./ytdlp/ytdlp";
+import { pathToFileURL } from "node:url";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
+
+console.log("dev server url:", MAIN_WINDOW_VITE_DEV_SERVER_URL);
+console.log("main window name:", MAIN_WINDOW_VITE_NAME);
+
+const rendererDist = path.join(
+  import.meta.dirname,
+  `../renderer/${MAIN_WINDOW_VITE_NAME}`
+);
+
+if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+  app.setPath('userData', path.join(app.getPath('userData'), '-dev'));
+}
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { secure: true, standard: true } }
+]);
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -14,8 +31,10 @@ if (started) {
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       preload: path.join(import.meta.dirname, "preload.js"),
     },
@@ -23,24 +42,52 @@ const createWindow = () => {
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    mainWindow.loadURL(
+      MAIN_WINDOW_VITE_DEV_SERVER_URL
+    );
     mainWindow.webContents.on("did-frame-finish-load", () => {
       mainWindow.webContents.openDevTools({ mode: "right" });
     });
   } else {
-    mainWindow.loadFile(
-      path.join(
-        import.meta.dirname,
-        `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`,
-      ),
-    );
+    // const filePath = path.join(
+      // import.meta.dirname,
+      // `../renderer/${MAIN_WINDOW_VITE_NAME}/app.html`
+    // );
+    // console.log('Loading production file:', filePath);
+    // mainWindow.loadURL(`file://${filePath}`);
+    
+    mainWindow.loadURL('app://bundle/').catch(err => {
+      console.error('Failed to load app url', err);
+      mainWindow.loadFile(path.join(rendererDist, 'app.html'));
+    });
   }
 };
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on("ready", createWindow);
+app.on("ready", () => {
+  // Register custom protocol to intercept resource resolution
+  // We need this because of the way svelte compiles html files, specifically URIs as absolute path rooted at _app, which doesn't exist in a client only electron app.
+  protocol.handle('app', (req) => {
+    console.log("Protocol handler hit:", req.url);
+
+    const url = new URL(req.url);
+    let filePath = url.pathname;
+
+    // strip leading slash for path.join
+    filePath = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+    
+    // fallback to app.html for SPA routing
+    const resolved = filePath === '' || filePath === '/'
+      ? path.join(rendererDist, 'app.html')
+      : path.join(rendererDist, filePath);
+
+    return net.fetch(pathToFileURL(resolved).toString());
+  });
+
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -62,3 +109,13 @@ app.on("activate", () => {
 
 // Register YTDLP specific event handlers
 registerYTDLPHandlers();
+
+ipcMain.handle("nebbysytdlp:restart", (_) => {
+  if (!MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    app.relaunch({
+      args: process.argv.slice(1),
+      execPath: process.execPath,
+    });
+  }
+  app.exit(0);
+})

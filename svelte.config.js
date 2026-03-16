@@ -6,7 +6,11 @@ const config = {
   kit: {
     adapter: adapter({
       pages: ".vite/renderer/main_window",
+      fallback: 'app.html',
     }),
+    paths: {
+      relative: true,
+    }
   },
 };
 

@@ -55,6 +55,7 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
+    "@fontsource-variable/roboto": "^5.2.10",
     "electron-squirrel-startup": "^1.0.1",
     "which": "^6.0.1"
   },

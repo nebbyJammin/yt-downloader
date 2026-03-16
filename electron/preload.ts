@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('nebbysYTDLP', {
     hasJSRUNTIME:          () => ipcRenderer.invoke('ytdlp:hasJSRuntime'),
     hasMinimumDependencies:() => ipcRenderer.invoke('ytdlp:hasMinimumDependencies'),
   },
+  restart: () => ipcRenderer.invoke('nebbysytdlp:restart'),
 });

@@ -9,6 +9,7 @@ export interface YTDLP {
 
 export interface NebbysYTDLP {
   ytdlp: YTDLP
+  restart: () => void
 }
 
 declare global {
