@@ -1,30 +1,49 @@
 <script lang='ts'>
-  import { resolve } from "$app/paths";
   import { electron } from "$lib/electron";
   import LogoFull from "$lib/components/logo/LogoFull.svelte";
   import BigThrobber from "$lib/components/throbber/BigThrobber.svelte";
   import MissingDependenciesInfo from "./MissingDependenciesInfo.svelte";
   import { fade } from "svelte/transition";
+  import { goto } from "$app/navigation";
+
+  const ANIMATION_FADE_IN_DURATION = 200;
 
   async function testCheckAPI() {
-    return await electron.ytdlp.hasYTDLP();
-  }
+    const promises = await Promise.all([
+      electron.ytdlp.hasMinimumDependencies(),
+      new Promise(res => {
+        setTimeout(() => {
+          res(true);
+        }, 1000)
+      })
+    ])
 
-  async function sleep() {
-    return new Promise(resolve => {
+    const ok = promises[0];
+
+    if (ok) {
       setTimeout(() => {
-        // resolve(Math.round(Math.random()) === 1)
-        resolve(false);
-      }, 1000);
-    });
+        goto('/home') 
+      }, ANIMATION_FADE_IN_DURATION)
+    }
+    return ok;
   }
 
 </script>
 
+{#snippet MissingDependenciesLayout()}
+  <div class="w-full absolute min-h-screen px-8 py-16 grid place-items-center">
+    <div in:fade|global={{ duration: 500, delay: ANIMATION_FADE_IN_DURATION }} class="h-full grid place-items-center">
+      <div class="max-w-150 grid justify-items-center content-center gap-y-4">
+        <MissingDependenciesInfo/>
+      </div>
+    </div>
+  </div> 
+{/snippet}
+
 <div class="relative">
-  {#await sleep()}
+  {#await testCheckAPI()}
     <div class="w-full h-full absolute min-h-screen px-8 py-24 grid place-items-center">
-      <div out:fade|global={{ duration: 200 }} class="h-full grid place-items-center">
+      <div out:fade|global={{ duration: ANIMATION_FADE_IN_DURATION }} class="h-full grid place-items-center">
         <div class="max-w-150 grid justify-items-center content-center gap-y-4">
           <LogoFull/>
           <BigThrobber/>
@@ -33,13 +52,9 @@
     </div>
   {:then ok}
     {#if !ok}
-      <div class="w-full absolute min-h-screen px-8 py-16 grid place-items-center">
-        <div in:fade|global={{ duration: 500, delay: 200 }} class="h-full grid place-items-center">
-          <div class="max-w-150 grid justify-items-center content-center gap-y-4">
-            <MissingDependenciesInfo/>
-          </div>
-        </div>
-      </div>
+      {@render MissingDependenciesLayout()}
     {/if}
+  {:catch}
+    {@render MissingDependenciesLayout()}
   {/await}
 </div>
