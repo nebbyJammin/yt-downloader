@@ -27,12 +27,70 @@
   --color-grey-2: var(--grey-2);
 }
 
+/* CSS reset */
+@layer components {
+  label {
+    color: var(--grey-1);
+  }
+
+  select, input, textarea, .fake-field {
+    background: var(--grey-2);
+    color: var(--grey-1);
+    font-weight: bold;
+    border-radius: 8px;
+    border: 1px solid oklch(from var(--foreground) l c h / 10%);
+  }
+
+  .fake-field {
+    padding: 8px 12px;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--purple);
+    outline-offset: -2px;
+    box-shadow: none;
+  }
+
+  input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+  }
+
+  input[type=checkbox] {
+    position: relative;
+    border-radius: 4px;
+  }
+
+  input[type=checkbox]:focus {
+    outline: none;
+    box-shadow: 0px 0px 0px 2px var(--purple);
+  }
+
+  input[type=checkbox]:checked {
+    color: var(--purple);
+  }
+
+  input[type=checkbox]:checked::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: var(--purple);
+    border-radius: inherit;
+  }
+}
+
 @layer components {
 
+  .layout-padding-transition { 
+    transition: padding 200ms ease-out;
+  }
+
+  .interactable-purple {
+    @apply bg-purple hover:bg-purple-1 active:bg-purple-2 transition-colors duration-200 ease-out;
+  }
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: "Roboto Variable";
+  font-family: "Roboto Variable", "Serif";
 }

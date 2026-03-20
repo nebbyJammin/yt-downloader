@@ -1,12 +1,17 @@
-import { app, BrowserWindow, ipcMain, net, protocol } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 import registerYTDLPHandlers from "./ytdlp/ytdlp";
 import { pathToFileURL } from "node:url";
+import type { PersistentAppState } from "../src/lib/stores/globalPersistentStore.svelte";
+import { spawn } from "node:child_process";
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
+const isDev = MAIN_WINDOW_VITE_DEV_SERVER_URL !== undefined;
+
+console.log("is dev", isDev);
 console.log("dev server url:", MAIN_WINDOW_VITE_DEV_SERVER_URL);
 console.log("main window name:", MAIN_WINDOW_VITE_NAME);
 
@@ -37,8 +42,29 @@ const createWindow = () => {
     minHeight: 600,
     webPreferences: {
       preload: path.join(import.meta.dirname, "preload.js"),
+      devTools: isDev,
     },
   });
+
+  // TODO: Probably refactor this elsewhere, this feels messy having a bunch of event handlers crammed here
+
+  // Register BrowserWindow specific IPC handlers
+  ipcMain.handle("dialog:openDirectory", async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+    });
+    if (result.canceled) return null;
+
+    return result.filePaths[0];
+  })
+
+  ipcMain.handle("dialog:openDirectoryInSeparateProcess", async (_, path: string) => {
+    const command = process.platform === 'win32' ? 'explorer'
+      : process.platform === 'darwin' ? 'open'
+      : 'xdg-open';
+
+    spawn(command, [path], { detached: true, stdio: 'ignore' }).unref();
+  })
 
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -49,16 +75,25 @@ const createWindow = () => {
       mainWindow.webContents.openDevTools({ mode: "right" });
     });
   } else {
+    // NOTE: This is old method
     // const filePath = path.join(
       // import.meta.dirname,
       // `../renderer/${MAIN_WINDOW_VITE_NAME}/app.html`
     // );
     // console.log('Loading production file:', filePath);
     // mainWindow.loadURL(`file://${filePath}`);
-    
+ 
+    // NOTE: This is new method, defining custom protocol to resolve relative paths to absolute paths (required by svelte)
     mainWindow.loadURL('app://bundle/').catch(err => {
       console.error('Failed to load app url', err);
       mainWindow.loadFile(path.join(rendererDist, 'app.html'));
+    });
+
+    // Disable reloading in production builds
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.key === 'r' && (input.control || input.meta)) {
+        event.preventDefault();
+      }
     });
   }
 };
@@ -106,10 +141,10 @@ app.on("activate", () => {
   }
 });
 
-
 // Register YTDLP specific event handlers
 registerYTDLPHandlers();
 
+// Register non-YTDLP specific event handlers
 ipcMain.handle("nebbysytdlp:restart", (_) => {
   if (!MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     app.relaunch({
@@ -118,4 +153,23 @@ ipcMain.handle("nebbysytdlp:restart", (_) => {
     });
   }
   app.exit(0);
+});
+
+ipcMain.handle("nebbysytdlp:load", (_) => {
+  console.log("loading store");
+  return null;
+});
+
+ipcMain.handle("nebbysytdlp:save", (_, state: PersistentAppState) => {
+  console.log("saving state");
+  return true;
+});
+
+ipcMain.handle("nebbysytdlp:getDefaultOutputDirectory", () => {
+  console.log("getting default output");
+  try {
+    return app.getPath("downloads");
+  } catch(e) {
+    return app.getPath("home");
+  }
 })

@@ -1,7 +1,14 @@
 <script lang="ts">
-  import { type Snippet } from 'svelte';
+  import { globalPersistentStore } from '$lib/stores/globalPersistentStore.svelte';
+  import { downloadManager } from '$lib/stores/downloadManager.svelte';
+  import { onMount, type Snippet } from 'svelte';
 
   let {children}: {children?: Snippet} = $props();
+
+  onMount(() => {
+    globalPersistentStore.init()
+    downloadManager.init();
+  })
 </script>
 
 {@render children?.()}

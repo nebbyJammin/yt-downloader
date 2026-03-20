@@ -10,11 +10,11 @@
 
 </script>
 
-<a href={href}>
+<a href={href} draggable="false">
   <div class={`flex flex-col items-center justify-center p-2 hover:bg-white/5 transition-colors duration-200 ease-out w-full aspect-square select-none`}> 
-    <div class="w-full px-4 py-1">
-      <div class={`${isCurrentlyOpen ? "bg-purple" : "bg-white" } w-full aspect-square`} style:mask-image={`url(${src})`}></div>
+    <div class="w-full p-2">
+      <div class={`${isCurrentlyOpen ? "bg-purple" : "bg-white" } size-8`} style:mask-image={`url(${src})`}></div>
     </div>
-    <div class={`text-xs ${isCurrentlyOpen ? "text-purple font-medium" : "font-light"}`}>{title}</div>
+    <!-- <div class={`text-[10px] ${isCurrentlyOpen ? "text-purple font-medium" : "font-light"}`}>{title}</div> -->
   </div>
 </a>

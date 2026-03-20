@@ -29,11 +29,13 @@
   ]
 </script>
 
-<nav class="fixed h-screen border-r border-r-grey-2 w-20 flex flex-col">
-  {#each navigations as navigation}
-    <NavigationElement {...navigation}/> 
-  {/each}
-</nav>
-<main class="ml-20">
-  {@render children?.()}
-</main>
+<div class="flex h-screen overflow-hidden">
+  <nav class="h-screen border-r border-r-grey-2 w-20 flex flex-col basis-1 shrink-0 grow-0">
+    {#each navigations as navigation}
+      <NavigationElement {...navigation}/> 
+    {/each}
+  </nav>
+  <main class="w-full overflow-y-auto p-15 max-lg:p-10 max-md:p-5 layout-padding-transition">
+    {@render children?.()}
+  </main>
+</div>
