@@ -48,10 +48,7 @@ export function getReadableMP4DownloadQuality(q: MP4DownloadQuality) {
     [MP4DownloadQuality.P360]: "360p",
     [MP4DownloadQuality.P480]: "480p",
     [MP4DownloadQuality.P720]: "720p",
-    [MP4DownloadQuality.P1080]: "1080p",
-  }[q]
-}
-
+    [MP4DownloadQuality.P1080]: "1080p", }[q] }
 export type DownloadFormat = 
   | { format: FileFormat.MP3, quality: MP3DownloadQuality }
   | { format: FileFormat.MP4, quality: MP4DownloadQuality }

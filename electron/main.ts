@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, net, protocol } from "electron";
 import path from "node:path";
 import started from "electron-squirrel-startup";
 import registerYTDLPHandlers from "./ytdlp/ytdlp";
@@ -172,4 +172,4 @@ ipcMain.handle("nebbysytdlp:getDefaultOutputDirectory", () => {
   } catch(e) {
     return app.getPath("home");
   }
-})
+});

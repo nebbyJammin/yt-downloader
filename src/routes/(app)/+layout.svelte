@@ -35,7 +35,7 @@
       <NavigationElement {...navigation}/> 
     {/each}
   </nav>
-  <main class="w-full overflow-y-auto p-15 max-lg:p-10 max-md:p-5 layout-padding-transition">
+  <main class="w-full overflow-y-auto p-12 max-lg:p-10 max-md:p-5 layout-padding-transition">
     {@render children?.()}
   </main>
 </div>

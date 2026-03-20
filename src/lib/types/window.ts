@@ -19,7 +19,7 @@ export interface YTDLP {
   hasJSRUNTIME: () => Promise<boolean>
   hasMinimumDependencies: () => Promise<boolean>
 
-  getMetadata: (url: string, args: Pick<DownloadOptions, 'cookies'>) => Promise<VideoDownloadContextWithoutId>
+  getMetadata: (url: string, args: Pick<DownloadOptions, 'cookies'>) => Promise<VideoDownloadContextWithoutId[]>
   startDownload: () => Promise<VideoDownloadContextWithoutId>
   cancelDownload: () => Promise<boolean>
   /**

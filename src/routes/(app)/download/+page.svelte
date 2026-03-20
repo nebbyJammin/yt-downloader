@@ -12,7 +12,8 @@
       MP3DownloadQuality 
     | MP4DownloadQuality
     >(MP3DownloadQuality.KBS320);
-  let url = $state("");
+  let url = $state("https://www.youtube.com/playlist?list=PLKLMsHwPzDZHB9n7mneI5vI5ZdKjiu02p");
+  // let url = $state("");
   let embedThumbnail = $state(true);
   let embedMetadata = $state(true);
 </script>
@@ -22,6 +23,8 @@
 
   import { FileFormat, getReadableMP3DownloadQuality, getReadableMP4DownloadQuality, MP3DownloadQuality, MP4DownloadQuality } from "$lib/downloadsModel";
   import { electron } from "$lib/electron";
+  import { globalPersistentStore } from "$lib/stores/globalPersistentStore.svelte";
+  import { CookiesFromBrowserMethod, CookiesMethod } from "$lib/types/cookies";
   import { onMount } from "svelte";
 
   const FileFormatReadable = {
@@ -79,6 +82,13 @@
     target.valueAsNumber = Math.min(Math.max(target.valueAsNumber, minDelay), maxDelay);
   }
 
+  async function addToQueueOnClick(e: MouseEvent) {
+    // TODO: Handle error
+    const res = await electron.ytdlp.getMetadata(url, $state.snapshot(globalPersistentStore.state.preferences));
+
+    console.log(res);
+  }
+
 </script>
 
 {#snippet downloaderSettings()}
@@ -133,7 +143,7 @@
     <h2 class="font-semibold text-foreground text-xl">Add to Queue</h2>
     <div class="flex flex-wrap gap-2">
       <div class="w-full basis-full">
-        <StyledField label="Enter a Video/URL Playlist">
+        <StyledField label="Enter a URL to a Video/Playlist">
           <input 
             type="url" 
             bind:value={url} 
@@ -187,9 +197,7 @@
       <div class="basis-full flex justify-end my-3">
         <button
           class="interactable-purple rounded-lg px-6 py-3 font-bold"
-          onclick={() => {
-            console.log("Adding to queue");
-          }}
+          onclick={addToQueueOnClick}
         >Add to Queue</button>
       </div>
     </div>
@@ -198,9 +206,9 @@
 
 <!-- DOWNLOADER -->
 
-<h1 class="font-bold text-white text-5xl">Download Queue</h1>
+<h1 class="px-8 font-bold text-white text-5xl">Download Queue</h1>
 <div class="grid grid-cols-2 gap-5 max-lg:grid-cols-1">
-  <div class="settings-container py-10 flex flex-col *:px-8 *:py-6">
+  <div class="settings-container flex flex-col *:px-8 *:py-6">
     {@render downloaderSettings()}
     {@render requestSettings()}
   </div>

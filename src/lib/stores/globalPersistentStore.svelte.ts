@@ -1,25 +1,9 @@
 import { electron } from "$lib/electron";
 import { debounce, type DeepReadonly } from "$lib/utils";
 import type { VideoMetadata } from "$lib/downloadsModel";
+import { CookiesFromBrowserMethod, CookiesMethod, type CookiesPreferences } from "$lib/types/cookies";
 
 const SAVE_DEBOUNCE = 500;
-
-export enum CookiesMethod {
-  NONE,
-  TXT,
-  BROWSER,
-}
-
-export enum CookiesFromBrowserMethod {
-  CHROME, BRAVE, EDGE, OPERA, VIVALDI, WHALE, FIREFOX, SAFARI, OTHER,
-}
-
-export type CookiesPreferences = { 
-  cookiesMethod: CookiesMethod,
-  cookiesRaw: string,
-  cookiesFromBrowserMethod: CookiesFromBrowserMethod
-  cookiesFromBrowserMethodOther: string
-}
 
 export type Preferences = {
   cookies: CookiesPreferences
@@ -32,12 +16,26 @@ export interface PersistentAppState {
   },
 }
 
+// const defaultState: PersistentAppState = {
+  // preferences: {
+    // cookies: {
+      // cookiesMethod: CookiesMethod.NONE,
+      // cookiesRaw: "",
+      // cookiesFromBrowserMethod: CookiesFromBrowserMethod.CHROME,
+      // cookiesFromBrowserMethodOther: "",
+    // }
+  // },
+  // downloads: {
+    // history: []
+  // }
+// }
+
 const defaultState: PersistentAppState = {
   preferences: {
     cookies: {
-      cookiesMethod: CookiesMethod.NONE,
+      cookiesMethod: CookiesMethod.BROWSER,
       cookiesRaw: "",
-      cookiesFromBrowserMethod: CookiesFromBrowserMethod.CHROME,
+      cookiesFromBrowserMethod: CookiesFromBrowserMethod.FIREFOX,
       cookiesFromBrowserMethodOther: "",
     }
   },
