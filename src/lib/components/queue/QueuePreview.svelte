@@ -4,9 +4,11 @@
 
 <script lang="ts">
     import { downloadManager } from "$lib/stores/downloadManager.svelte";
+    import { cubicOut } from "svelte/easing";
     import CompletedBadge from "./badges/CompletedBadge.svelte";
     import RemoveFromQueueBadge from "./badges/RemoveFromQueueBadge.svelte";
     import VideoPreview from "./VideoPreview.svelte";
+    import { fade } from "svelte/transition";
 
   interface QueuePreviewArgs {
     hideCompleted?: boolean
@@ -29,6 +31,8 @@
   {/if}
   <!-- Upcoming in queue -->
   {#each downloadManager.state.queue as metadata (metadata.downloadId)}
-    <VideoPreview metadata={metadata} Badge={RemoveFromQueueBadge}/>
+    <div in:fade={{duration:150, easing: cubicOut}}>
+      <VideoPreview metadata={metadata} Badge={RemoveFromQueueBadge}/>
+    </div>
   {/each}
 </div>

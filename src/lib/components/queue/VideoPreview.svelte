@@ -1,19 +1,17 @@
 <script lang="ts">
   import { FileFormat, getReadableMP3DownloadQuality, getReadableMP4DownloadQuality, MP3DownloadQuality, type DownloadingVideoDownloadContext, type VideoDownloadContext } from "$lib/downloadsModel";
-  import type { Component, Snippet } from "svelte";
-  import { fade } from "svelte/transition";
-  import { cubicOut } from "svelte/easing";
+  import type { Component } from "svelte";
 
-  interface VideoPreviewArgs {
-    metadata: VideoDownloadContext
-    Badge?: Component<VideoDownloadContext> | Component<DownloadingVideoDownloadContext>
+  interface VideoPreviewArgs<T extends VideoDownloadContext> {
+    metadata: T
+    Badge?: Component<any>
   }
 
   let {
     metadata,
     Badge,
     ...props
-  }: VideoPreviewArgs = $props();
+  }: VideoPreviewArgs<VideoDownloadContext | DownloadingVideoDownloadContext> = $props();
 
   let readableDuration = $derived.by(() => {
     const totalSeconds = metadata.duration;
@@ -105,7 +103,6 @@
 <div 
   class="hover:bg-grey-1/20 hover:shadow-lg hover:shadow-black/60 px-5 py-1 transition-colors duration-200 ease-out cursor-grab active:cursor-grabbing **:select-none" 
   draggable="false"
-  transition:fade={{duration: 125, easing: cubicOut}}
 >
   <div class="grid grid-cols-[50px_min(250px,20cqw)_minmax(0,1fr)] overflow-x-hidden gap-x-4 overflow-hidden">
     <div class="w-full grid place-content-center">
