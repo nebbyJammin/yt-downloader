@@ -1,18 +1,25 @@
-import type { VideoDownloadContext } from "$lib/downloadsModel"
+import type { DownloadingVideoDownloadContext, VideoDownloadContext } from "$lib/downloadsModel"
 import { electron } from "$lib/electron"
 import type { DeepReadonly } from "$lib/utils"
 import { onMount } from "svelte"
+import type { DownloadOptionsWithCookies, VideoDownloadContextWithoutId } from "$lib/types/window"
+import { mockVideo } from "$lib/mock/mockVideoMetadata"
 import { globalPersistentStore } from "./globalPersistentStore.svelte"
 
 interface DownloadManagerState {
+  outputDirectory: string
+
   queue: VideoDownloadContext[]
-  completedQueue: VideoDownloadContext[]
-  currentDownload: VideoDownloadContext | null
+  completedQueue: DownloadingVideoDownloadContext[]
+  currentDownload: DownloadingVideoDownloadContext | null
   consumingFromQueue: boolean
 }
 
 const defaultSessionState: DownloadManagerState = {
-  queue: [],
+  outputDirectory: "/home/nebby/Documents/",
+  queue: [{
+    ...mockVideo,
+  }],
   completedQueue: [],
   currentDownload: null,
   consumingFromQueue: false,
@@ -21,6 +28,8 @@ const defaultSessionState: DownloadManagerState = {
 class DownloadManager {
   #state = $state<DownloadManagerState>(defaultSessionState);
   #currId = 0
+  // TODO: This is highly coupled to global persistent store...
+  #cookies = $derived(globalPersistentStore.state.preferences.cookies)
 
   get state(): DeepReadonly<DownloadManagerState> {
     return this.#state
@@ -32,22 +41,30 @@ class DownloadManager {
     return next;
   }
 
-  init() {
-    onMount(async () => {
-      // Don't await results, just assign the callbacks
-      electron.ytdlp.setOnVideoDownloadRequestFinished(this.#onVideoDownloadRequestFinished);
-      electron.ytdlp.setOnRequestNextVideo(this.#onRequestNextVideo)
+  async init() {
+    // Don't await results, just assign the callbacks
+    electron.ytdlp.setOnVideoDownloadRequestFinished(this.#onVideoDownloadRequestFinished);
+    electron.ytdlp.setOnRequestNextVideo(() => {
+      return this.#onRequestNextVideo();
     })
+    this.setOutputPath(await electron.getDefaultOutputDirectory());
   }
 
   // Enqueue video with URL, can throw an error if invalid.
-  async enqueueVideo(url: string) {
+  async enqueueVideo(url: string, opts: Pick<DownloadOptionsWithCookies, "downloadFormat" | "embedThumbnail" | "embedMetadata" | "cookies">) {
     // TODO: Consider appending error to some sort of error manager
-    const metadata = await electron.ytdlp.getMetadata(url, {
-      cookies: globalPersistentStore.state.preferences.cookies,
+    const metadatas = await electron.ytdlp.getMetadata(url, {
+      ...opts,
     });
 
-    this.#state.queue.push({...metadata, downloadId: this.#nextId()});
+    const videos: VideoDownloadContext[] = metadatas.map(metadata => {
+      return {
+        ...metadata,
+        downloadId: this.#nextId(),
+      }
+    })
+
+    this.#state.queue.push(...videos);
   }
 
   async removeQueuedVideo(downloadId: number) {
@@ -64,11 +81,19 @@ class DownloadManager {
     await electron.ytdlp.cancelDownload();
   }
 
-  startConsumingDownloadQueue() {
+  clearQueue() {
+    this.#state.queue = [];
+  }
+
+  queueEmpty() {
+    return this.#state.queue.length === 0;
+  }
+
+  async startConsumingDownloadQueue() {
     if (this.#state.consumingFromQueue) return;
 
     this.#state.consumingFromQueue = true;
-    electron.ytdlp.startDownload()
+    this.#state.consumingFromQueue = await electron.ytdlp.startDownload();
   }
 
   async stopConsumingDownloadQueue() {
@@ -86,18 +111,36 @@ class DownloadManager {
    *    - When a download is cancelled
    *    - When a download has finished
   */
-  #onRequestNextVideo = () => {
-    if (!this.state.consumingFromQueue) return null;
-    if (this.state.queue.length == 0) return null
+  #onRequestNextVideo = (): [VideoDownloadContextWithoutId | null, Pick<DownloadOptionsWithCookies, 'cookies' | 'outputDirectory'> | null] => {
+    console.log("Main requested next video");
+    if (!this.state.consumingFromQueue
+        || this.state.queue.length === 0) {
+      // No video available
+      this.#state.consumingFromQueue = false;
+      return [null, null] as const;
+    }
 
     const [nextVideo] = this.#state.queue.splice(0,1);
-    this.#state.currentDownload = nextVideo;
+    this.#state.currentDownload = {
+      progress: 0,
+      failed: false,
+      error: "",
+      ...nextVideo,
+    };
     
-    return nextVideo
+    // TODO: This is highly coupled to global persistent store...
+    return [$state.snapshot(nextVideo), {
+      cookies: $state.snapshot(this.#cookies),
+      outputDirectory: $state.snapshot(this.#state.outputDirectory)
+    }];
   }
 
   #onVideoDownloadRequestFinished = () => {
     this.#state.currentDownload = null;
+  }
+
+  setOutputPath(path: string) {
+    this.#state.outputDirectory = path;
   }
 }
 

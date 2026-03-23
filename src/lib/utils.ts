@@ -9,3 +9,5 @@ export function debounce<T extends (...args: any[]) => any>(fn: T, delay: number
 export type DeepReadonly<T> = {
   readonly [K in keyof T]: T[K] extends Object ? DeepReadonly<T[K]> : T[K]
 }
+
+export type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;

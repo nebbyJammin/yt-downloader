@@ -1,6 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron') as typeof import('electron');
-import type { DownloadOptions, VideoDownloadContextWithoutId } from '../src/lib/types/window.ts';
+import type { DownloadOptionsWithCookies, VideoDownloadContextWithoutId } from '../src/lib/types/window.ts';
 import type { PersistentAppState } from '../src/lib/stores/globalPersistentStore.svelte.ts';
+import type { DownloadingVideoDownloadContext } from '../src/lib/downloadsModel.ts';
+import type { IpcRendererEvent } from 'electron';
 
 contextBridge.exposeInMainWorld('nebbysYTDLP', {
   ytdlp: {
@@ -10,22 +12,22 @@ contextBridge.exposeInMainWorld('nebbysYTDLP', {
     hasMinimumDependencies:() => ipcRenderer.invoke('ytdlp:hasMinimumDependencies'),
 
     getMetadata: 
-      (url: string, options: Pick<DownloadOptions, 'cookies'>): Promise<VideoDownloadContextWithoutId> => 
+      (url: string, options: Pick<DownloadOptionsWithCookies, 'cookies'>): Promise<VideoDownloadContextWithoutId> => 
         ipcRenderer.invoke('ytdlp:getMetadata', url, options),
     startDownload: () => ipcRenderer.invoke('ytdlp:startDownload'),
     cancelDownload: () => ipcRenderer.invoke('ytdlp:cancelDownload'),
     setOnRequestNextVideo: 
-      (callback: () => VideoDownloadContextWithoutId | null) => {
-
-        ipcRenderer.on('ytdlp:onRequestNextVideo', () => {
-          const next = callback();
-          // send result back to main
-          ipcRenderer.invoke('ytdlp:provideNextVideo', next)
-        });
-      },
+      (callback: () => [VideoDownloadContextWithoutId | null, Pick<DownloadOptionsWithCookies, 'cookies'>]) =>
+        ipcRenderer.on('ytdlp:onRequestNextVideo', async () => {
+          const [nextVideo, cookies] = callback();
+          return await ipcRenderer.invoke('ytdlp:provideNextVideo', nextVideo, cookies)
+        }),
     setOnVideoDownloadRequestFinished:
       (callback: (() => any) | (() => void)) => 
-        ipcRenderer.on('ytdlp:onVideoDownloadRequestFinished', callback)
+        ipcRenderer.on('ytdlp:onVideoDownloadRequestFinished', callback),
+    setOnVideoDownloadUpdated: 
+    (callback: ((e: IpcRendererEvent, newVideoState: DownloadingVideoDownloadContext) => any) 
+    | ((e: IpcRendererEvent, newVideoState: DownloadingVideoDownloadContext) => void)) => ipcRenderer.on('ytdlp:onVideoDownloadUpdated', callback)
 
 
   },

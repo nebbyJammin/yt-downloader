@@ -2,8 +2,8 @@
   // Downloader
   let downloadDelay = $state(0);
   // TODO: Use a sensible output directory that isn't /
-  let outputPath = $state<string | null>(null);
-  outputPath = await electron.getDefaultOutputDirectory();
+  
+  let outputPath = $derived(downloadManager.state.outputDirectory)
 
   // Per Request Settings
   let format = $state(FileFormat.MP3);
@@ -16,15 +16,17 @@
   // let url = $state("");
   let embedThumbnail = $state(true);
   let embedMetadata = $state(true);
+  let addingToQueue = $state(false);
 </script>
 
 <script lang="ts">
   import StyledField from "$lib/components/form/StyledField.svelte";
+  import FullQueueView from "$lib/components/queue/FullQueueView.svelte";
 
   import { FileFormat, getReadableMP3DownloadQuality, getReadableMP4DownloadQuality, MP3DownloadQuality, MP4DownloadQuality } from "$lib/downloadsModel";
   import { electron } from "$lib/electron";
+    import { downloadManager } from "$lib/stores/downloadManager.svelte";
   import { globalPersistentStore } from "$lib/stores/globalPersistentStore.svelte";
-  import { CookiesFromBrowserMethod, CookiesMethod } from "$lib/types/cookies";
   import { onMount } from "svelte";
 
   const FileFormatReadable = {
@@ -42,7 +44,7 @@
   async function selectOutputOnClick() {
     const path = await electron.dialog.showOpenDialog();
     if (path) {
-      outputPath = path;
+      downloadManager.setOutputPath(path)
     }
   }
 
@@ -83,10 +85,23 @@
   }
 
   async function addToQueueOnClick(e: MouseEvent) {
-    // TODO: Handle error
-    const res = await electron.ytdlp.getMetadata(url, $state.snapshot(globalPersistentStore.state.preferences));
+    addingToQueue = true;
 
-    console.log(res);
+    // TODO: Handle error
+    const metadataArgs = {
+      ...$state.snapshot(globalPersistentStore.state.preferences),
+      downloadFormat: {
+        format: FileFormat.MP3,
+        quality: MP3DownloadQuality.KBS320,
+      } as const, // Don't allow typescript to widen the type
+      embedMetadata: true,
+      embedThumbnail: true,
+    }
+
+    // const res = await electron.ytdlp.getMetadata(url, metadataArgs);
+    await downloadManager.enqueueVideo(url, metadataArgs);
+
+    addingToQueue = false;
   }
 
 </script>
@@ -196,9 +211,16 @@
       </div>
       <div class="basis-full flex justify-end my-3">
         <button
-          class="interactable-purple rounded-lg px-6 py-3 font-bold"
+          class="interactable-purple disabled:bg-grey-1 rounded-lg font-bold w-40 h-12 grid place-content-center"
           onclick={addToQueueOnClick}
-        >Add to Queue</button>
+          disabled={addingToQueue}
+        >
+          {#if addingToQueue}
+            <div class="spinner-loader-1 size-8"></div>
+          {:else}
+            Add to Queue
+          {/if}
+        </button>
       </div>
     </div>
   </div>  
@@ -206,15 +228,22 @@
 
 <!-- DOWNLOADER -->
 
-<h1 class="px-8 font-bold text-white text-5xl">Download Queue</h1>
-<div class="grid grid-cols-2 gap-5 max-lg:grid-cols-1">
-  <div class="settings-container flex flex-col *:px-8 *:py-6">
-    {@render downloaderSettings()}
-    {@render requestSettings()}
-  </div>
-  <div class="bg-red-200/10 min-h-100">
-    {#each [outputPath, downloadDelay, format, quality, url, embedThumbnail, embedMetadata] as val}
-      <div>{val ?? "null"}</div> 
-    {/each}
+{#snippet peekMacro()}
+  {#each [outputPath, downloadDelay, format, quality, url, embedThumbnail, embedMetadata] as val}
+    <div>{val ?? "null"}</div> 
+  {/each} 
+{/snippet}
+
+<!-- NOTE: max-lg layout changes -->
+<div class="h-full max-lg:h-auto flex flex-col">
+  <h1 class="px-8 font-bold text-white text-5xl shrink-0">Download Queue</h1>
+  <div class="flex-1 min-h-0 grid grid-cols-[2fr_3fr] gap-10 max-lg:grid-cols-1">
+    <div class="settings-container flex flex-col *:px-8 *:py-6">
+      {@render downloaderSettings()}
+      {@render requestSettings()}
+    </div>
+    <div class="min-h-0">
+      <FullQueueView/>
+    </div>
   </div>
 </div>

@@ -15,14 +15,14 @@ console.log("is dev", isDev);
 console.log("dev server url:", MAIN_WINDOW_VITE_DEV_SERVER_URL);
 console.log("main window name:", MAIN_WINDOW_VITE_NAME);
 
+// Unlock fps
+// app.commandLine.appendSwitch('disable-frame-rate-limit');
+// app.commandLine.appendSwitch('disable-gpu-vsync');
+
 const rendererDist = path.join(
   import.meta.dirname,
   `../renderer/${MAIN_WINDOW_VITE_NAME}`
 );
-
-if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-  app.setPath('userData', path.join(app.getPath('userData'), '-dev'));
-}
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { secure: true, standard: true } }
@@ -45,6 +45,9 @@ const createWindow = () => {
       devTools: isDev,
     },
   });
+
+  // Register YTDLP specific event handlers
+  registerYTDLPHandlers(mainWindow);
 
   // TODO: Probably refactor this elsewhere, this feels messy having a bunch of event handlers crammed here
 
@@ -140,10 +143,6 @@ app.on("activate", () => {
     createWindow();
   }
 });
-
-// Register YTDLP specific event handlers
-registerYTDLPHandlers();
-
 // Register non-YTDLP specific event handlers
 ipcMain.handle("nebbysytdlp:restart", (_) => {
   if (!MAIN_WINDOW_VITE_DEV_SERVER_URL) {

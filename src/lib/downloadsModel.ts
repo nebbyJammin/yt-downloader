@@ -1,10 +1,9 @@
-// yt-dlp --cookies-from-browser firefox --skip-download --flat-playlist --extractor-args  youtubetab:approximate-date -O "url,title,channel,duration,timestamp,view_count" 'https://www.youtube.com/playlist?list=PLKLMsHwPzDZHB9n7mneI5vI5ZdKjiu02p'
-
 export type VideoMetadata = {
   url: string  
   title: string
   channel: string
   duration: number
+  thumbnail: string
   timestamp: number
   view_count: number
 }
@@ -57,7 +56,14 @@ export type VideoDownloadContext = {
   downloadId: number,
   downloadFormat: DownloadFormat,
   embedThumbnail: boolean,
+  embedMetadata: boolean,
 } & VideoMetadata
+
+export type DownloadingVideoDownloadContext = {
+  progress: number
+  failed: boolean
+  error: string
+} & VideoDownloadContext
 
 export enum DownloadRequestResult {
   CANCELLED,

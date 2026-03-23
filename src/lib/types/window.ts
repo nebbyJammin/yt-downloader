@@ -1,17 +1,25 @@
 // Override types on window object to expose API via IPC
 
-import type { DownloadFormat, VideoDownloadContext } from "$lib/downloadsModel"
-import type { CookiesPreferences, PersistentAppState } from "$lib/stores/globalPersistentStore.svelte"
+import type { DownloadFormat, DownloadingVideoDownloadContext, VideoDownloadContext } from "$lib/downloadsModel"
+import type { PersistentAppState } from "$lib/stores/globalPersistentStore.svelte"
+import type { Expand } from "$lib/utils"
+import type { CookiesPreferences } from "./cookies"
 
 
 // yt-dlp --cookies-from-browser firefox --skip-download --flat-playlist --extractor-args  youtubetab:approximate-date -O "url,title,channel,duration,timestamp,view_count" 'https://www.youtube.com/playlist?list=PLKLMsHwPzDZHB9n7mneI5vI5ZdKjiu02p'
 
-export interface DownloadOptions {
+export type DownloadOptionsWithCookies = {
   cookies: CookiesPreferences,
+} & DownloadOptions
+
+export interface DownloadOptions {
+  outputDirectory: string,
   downloadFormat: DownloadFormat,
+  embedThumbnail: boolean,
+  embedMetadata: boolean,
 }
 
-export type VideoDownloadContextWithoutId = Omit<VideoDownloadContext, 'downloadId'>
+export type VideoDownloadContextWithoutId = Expand<Omit<VideoDownloadContext, 'downloadId'>>
 
 export interface YTDLP {
   hasYTDLP: () => Promise<boolean>
@@ -19,8 +27,8 @@ export interface YTDLP {
   hasJSRUNTIME: () => Promise<boolean>
   hasMinimumDependencies: () => Promise<boolean>
 
-  getMetadata: (url: string, args: Pick<DownloadOptions, 'cookies'>) => Promise<VideoDownloadContextWithoutId[]>
-  startDownload: () => Promise<VideoDownloadContextWithoutId>
+  getMetadata: (url: string, args: Pick<DownloadOptionsWithCookies, 'cookies'>) => Promise<VideoDownloadContextWithoutId[]>
+  startDownload: () => Promise<boolean>
   cancelDownload: () => Promise<boolean>
   /**
    * Set the callback function that requests the next video. This callback is called whenever: 
@@ -31,11 +39,12 @@ export interface YTDLP {
    * This callback should return the next video to be processed.
    * If no video should be processed, then the callback should return null.
    */
-  setOnRequestNextVideo: (callback: () => VideoDownloadContextWithoutId | null) => Promise<void>
+  setOnRequestNextVideo: (callback: () => [VideoDownloadContextWithoutId | null, Pick<DownloadOptionsWithCookies, 'cookies' | 'outputDirectory'> | null]) => Promise<void>
   /**
    * Set the callback function, which is called whenever a video has finished processing (downloading or has been cancelled).
   */
-  setOnVideoDownloadRequestFinished: (callback: (() => any) | (() => void)) => Promise<void> // TODO: Pass the status of the video as an argument
+  setOnVideoDownloadRequestFinished: (callback: (() => any) | (() => void)) => Promise<void>
+  setOnVideoDownloadUpdated: (callback: ((e: any, state: DownloadingVideoDownloadContext) => any) | ((e: any, state: DownloadingVideoDownloadContext) => void)) => Promise<void>
 }
 
 export interface Store {
